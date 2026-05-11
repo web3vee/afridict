@@ -9,7 +9,7 @@ export default function Footer() {
           <HStack spacing={2}>
             <Text fontSize="xl">🌍</Text>
             <Text fontWeight="bold" bgGradient="linear(to-r, brand.400, accent.500)" bgClip="text">
-              AfriPredict
+              AfriDict
             </Text>
           </HStack>
           <Text color="gray.400" fontSize="sm" textAlign="center">
@@ -24,7 +24,7 @@ export default function Footer() {
           </HStack>
           <Divider borderColor="surface.border" />
           <Text color="gray.600" fontSize="xs" textAlign="center">
-            © 2026 AfriPredict. Deployed on Polygon Mainnet. Always bet responsibly.
+            © 2026 AfriDict. Deployed on Polygon Mainnet. Always bet responsibly.
             Not available in restricted jurisdictions.
           </Text>
         </VStack>

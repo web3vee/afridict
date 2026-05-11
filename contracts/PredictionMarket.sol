@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /**
- * @title AfriPredict PredictionMarket
+ * @title AfriDict PredictionMarket
  * @notice African-focused prediction market on Polygon
  * @dev Supports Yes/No markets, USDT stablecoin, Chainlink oracles
  */

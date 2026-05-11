@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-const JWT_SECRET = process.env.JWT_SECRET || "afripredict-dev-secret-change-in-prod";
+const JWT_SECRET = process.env.JWT_SECRET || "afridict-dev-secret-change-in-prod";
 
 exports.generateToken = (userId) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });

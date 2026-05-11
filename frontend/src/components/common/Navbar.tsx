@@ -37,7 +37,9 @@ function WalletButton() {
   }
 
   return (
-    <Button size="sm" isLoading={isConnecting} onClick={connectWallet}>
+    <Button size="sm" isLoading={isConnecting} onClick={async () => {
+      try { await connectWallet(); } catch {}
+    }}>
       {t("nav.connect_wallet")}
     </Button>
   );
@@ -57,7 +59,7 @@ export default function Navbar() {
           <HStack spacing={2}>
             <Text fontSize="xl" fontWeight="bold" color="brand.500">🌍</Text>
             <Text fontSize="xl" fontWeight="bold" bgGradient="linear(to-r, brand.400, accent.500)" bgClip="text">
-              AfriPredict
+              AfriDict
             </Text>
           </HStack>
         </Link>
@@ -136,7 +138,7 @@ export default function Navbar() {
         <DrawerOverlay />
         <DrawerContent bg="surface.card">
           <DrawerCloseButton />
-          <DrawerHeader borderBottom="1px" borderColor="surface.border">AfriPredict</DrawerHeader>
+          <DrawerHeader borderBottom="1px" borderColor="surface.border">AfriDict</DrawerHeader>
           <DrawerBody>
             <VStack spacing={4} align="start" mt={4}>
               <Link to="/" onClick={onClose}><Text>{t("nav.markets")}</Text></Link>

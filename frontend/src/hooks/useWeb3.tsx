@@ -43,16 +43,20 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const isCorrectNetwork = chainId === TARGET_CHAIN_ID;
 
   const setupContracts = useCallback((signer: ethers.JsonRpcSigner) => {
-    const addr = addresses as any;
-    const pm = new ethers.Contract(addr.PredictionMarket, PredictionMarketABI.abi, signer);
-    const usdt = new ethers.Contract(addr.MockUSDT, USDT_ABI, signer);
-    setContract(pm);
-    setUsdtContract(usdt);
+    try {
+      const addr = addresses as any;
+      const pm = new ethers.Contract(addr.PredictionMarket, PredictionMarketABI.abi, signer);
+      const usdt = new ethers.Contract(addr.MockUSDT, USDT_ABI, signer);
+      setContract(pm);
+      setUsdtContract(usdt);
+    } catch {
+      // contracts not deployed yet — wallet still connects fine
+    }
   }, []);
 
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
-      alert("Please install MetaMask to use AfriPredict");
+      alert("Please install MetaMask to use AfriDict");
       return;
     }
     setIsConnecting(true);
@@ -61,17 +65,24 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       await _provider.send("eth_requestAccounts", []);
       const _signer = await _provider.getSigner();
       const _account = await _signer.getAddress();
-      const network = await _provider.getNetwork();
 
       setProvider(_provider);
       setSigner(_signer);
       setAccount(_account);
-      setChainId(Number(network.chainId));
-      setupContracts(_signer);
+
+      try {
+        const network = await _provider.getNetwork();
+        setChainId(Number(network.chainId));
+        setupContracts(_signer);
+      } catch {
+        // node offline — wallet still connected
+      }
 
       localStorage.setItem("walletConnected", "true");
     } catch (err) {
       console.error("Wallet connection failed:", err);
+      localStorage.removeItem("walletConnected");
+      throw err;
     } finally {
       setIsConnecting(false);
     }
@@ -110,11 +121,22 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Auto-reconnect
+  // Auto-reconnect (silent — no popup)
   useEffect(() => {
-    if (localStorage.getItem("walletConnected") === "true") {
-      connectWallet();
-    }
+    if (localStorage.getItem("walletConnected") !== "true") return;
+    if (!window.ethereum) return;
+    (async () => {
+      try {
+        const accounts: string[] = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts.length > 0) {
+          connectWallet();
+        } else {
+          localStorage.removeItem("walletConnected");
+        }
+      } catch {
+        localStorage.removeItem("walletConnected");
+      }
+    })();
   }, [connectWallet]);
 
   // Listen for account/chain changes
@@ -122,7 +144,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     if (!window.ethereum) return;
     const handleAccountChange = (accounts: string[]) => {
       if (accounts.length === 0) disconnectWallet();
-      else { setAccount(accounts[0]); connectWallet(); }
+      else setAccount(accounts[0]);
     };
     const handleChainChange = () => window.location.reload();
 

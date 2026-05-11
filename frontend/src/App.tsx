@@ -1,161 +1,126 @@
-import React, { useState } from 'react';
-import { ChakraProvider, Box, Heading, Text, Button, VStack, HStack, SimpleGrid, Card, CardHeader, CardBody, CardFooter, Badge, Input, useToast, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
-import { useI18n } from './i18n/I18nProvider';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Box, Spinner, useColorModeValue } from '@chakra-ui/react';
+import MainLayout from './layouts/MainLayout';
+import DashboardLayout from './layouts/DashboardLayout';
+import { useApp } from './context/AppContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
+
+const Landing        = lazy(() => import('./pages/Landing'));
+const CategoryPage   = lazy(() => import('./pages/CategoryPage'));
+const MentionsPage       = lazy(() => import('./pages/MentionsPage'));
+const MentionDetailPage  = lazy(() => import('./pages/MentionDetailPage'));
+const CountriesPage      = lazy(() => import('./pages/CountriesPage'));
+const CountryDetailPage  = lazy(() => import('./pages/CountryDetailPage'));
+const Portfolio      = lazy(() => import('./pages/Portfolio'));
+const Bookmarks      = lazy(() => import('./pages/Bookmarks'));
+const Settings       = lazy(() => import('./pages/Settings'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const ProfilePage     = lazy(() => import('./pages/ProfilePage'));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 
 const App = () => {
-  const { t } = useI18n();
-  const [account] = useState("0xf39F...2266");
-  const [usdtBalance, setUsdtBalance] = useState(0);
-  const [selectedMarket, setSelectedMarket] = useState<any>(null);
-  const [betAmount, setBetAmount] = useState("");
-  const [betSide, setBetSide] = useState<"yes" | "no" | null>(null);
-  const toast = useToast();
+  const {
+    activeCategory, howItWorksStep, setHowItWorksStep,
+    login, openBetYes, openBetNo, openMarketDetail, openEmbed,
+    markets, displayName, displayAddress, displayPhoto,
+    portfolioValue, myPositions,
+    openDeposit, openWithdraw,
+    account, firebaseUser,
+    triggerBetSplash,
+  } = useApp();
 
-  const markets = [
-    { id: 1, title: "Will Nigeria qualify for 2026 World Cup?", yesOdds: 1.85, noOdds: 2.05, pool: 18450, category: "Sports" },
-    { id: 2, title: "Will Senegal win AFCON 2025?", yesOdds: 2.30, noOdds: 1.65, pool: 14200, category: "Sports" },
-    { id: 3, title: "Will Cocoa price exceed $4000/ton by Dec?", yesOdds: 1.70, noOdds: 2.20, pool: 9800, category: "Commodities" },
-    { id: 4, title: "Will KES depreciate more than 5% this month?", yesOdds: 1.95, noOdds: 1.80, pool: 7650, category: "Economy" },
-    { id: 5, title: "Will ANC win South African election?", yesOdds: 2.10, noOdds: 1.75, pool: 11300, category: "Elections" },
-    { id: 6, title: "Will CAF overturn the AFCON 2025 winner again before April?", yesOdds: 2.10, noOdds: 1.70, pool: 12400, category: "Sports" },
-    { id: 7, title: "Will Morocco officially host AFCON 2025 after the Senegal controversy?", yesOdds: 1.65, noOdds: 2.25, pool: 15800, category: "Sports" },
-    { id: 8, title: "Will Senegal win their AFCON title back through CAS arbitration by June?", yesOdds: 2.80, noOdds: 1.45, pool: 9200, category: "Sports" },
-    { id: 9, title: "Will Boko Haram/ISWAP carry out another major bombing in Maiduguri before May?", yesOdds: 1.95, noOdds: 1.80, pool: 6800, category: "Security" },
-    { id: 10, title: "Will Dangote Refinery export over 20 cargoes of fuel across Africa by end of April?", yesOdds: 1.55, noOdds: 2.40, pool: 11300, category: "Economy" },
-  ];
+  const pageBg   = useColorModeValue('gray.50', '#0a0e17');
+  const pageText = useColorModeValue('gray.900', 'white');
 
-  const getTestUSDT = () => {
-    setUsdtBalance(usdtBalance + 1000);
-    toast({ title: "✅ 1000 Test USDT added!", status: "success", duration: 2000 });
-  };
-
-  const placeBet = () => {
-    if (!betSide || !betAmount || parseFloat(betAmount) > usdtBalance) {
-      toast({ title: "❌ Please enter a valid amount", status: "error" });
-      return;
+  // Auto-open a market modal when the URL has ?market=ID (e.g. from a copied link)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const marketId = params.get('market');
+    if (!marketId) return;
+    const found = markets.find((m: any) => String(m.contractId ?? m.id) === marketId);
+    if (found) {
+      openMarketDetail(found);
+      // Clean the query param from the URL without a page reload
+      const clean = window.location.pathname;
+      window.history.replaceState({}, '', clean);
     }
-    setUsdtBalance(usdtBalance - parseFloat(betAmount));
-    toast({ title: `✅ Bet placed on ${betSide.toUpperCase()}!`, description: selectedMarket.title, status: "success" });
-    setSelectedMarket(null);
-    setBetAmount("");
-    setBetSide(null);
-  };
+  }, [markets, openMarketDetail]);
 
   return (
-    <ChakraProvider>
-      <Box bg="#0a0e17" color="white" minH="100vh">
+    <Box bg={pageBg} color={pageText} minH="100vh">
+      <Suspense fallback={
+        <Box minH="100vh" display="flex" alignItems="center" justifyContent="center">
+          <Spinner size="xl" color="#ffd700" thickness="3px" speed="0.7s" />
+        </Box>
+      }>
+      <Routes>
 
-        {/* HEADER */}
-        <Box bg="#111827" px={8} py={4} display="flex" alignItems="center" justifyContent="space-between" borderBottom="1px solid #374151">
-          <HStack spacing={3}>
-            <img 
-              src={require('./assets/logo.png')} 
-              alt="Afridict" 
-              style={{ width: '48px', height: '48px', objectFit: 'contain' }} 
+        {/* Public pages — Navbar + Footer */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={
+            <Landing
+              activeCategory={activeCategory}
+              howItWorksStep={howItWorksStep}
+              onHowItWorksNext={() => setHowItWorksStep(s => s + 1)}
+              onHowItWorksClose={() => setHowItWorksStep(0)}
+              onLogin={login}
+              onBetYes={openBetYes}
+              onBetNo={openBetNo}
+              onMarketDetail={openMarketDetail}
+              onEmbed={openEmbed}
             />
-            <Heading size="2xl" color="white" letterSpacing="tight">Afridict</Heading>
-          </HStack>
+          } />
+          <Route path="/market/:category" element={
+            <CategoryPage
+              markets={markets}
+              onBetSuccess={triggerBetSplash}
+              onMarketDetail={openMarketDetail}
+            />
+          } />
+          <Route path="/mentions" element={<MentionsPage />} />
+          <Route path="/mentions/:id" element={<MentionDetailPage />} />
+          <Route path="/countries" element={<CountriesPage />} />
+          <Route path="/countries/:name" element={<CountryDetailPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+        </Route>
 
-          <HStack spacing={4}>
-            {/* Floating Menu Button */}
-            <Menu>
-              <MenuButton 
-                as={Button} 
-                variant="ghost" 
-                color="white" 
-                fontSize="3xl" 
-                p={2} 
-                lineHeight="1"
-                _hover={{ bg: "whiteAlpha.200" }}
-              >
-                ☰
-              </MenuButton>
-              <MenuList 
-                bg="#111827" 
-                borderColor="#374151" 
-                boxShadow="xl" 
-                zIndex={9999}
-                py={2}
-              >
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">🏠 Home</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">🔎 Browse All Markets</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">🔥 Trending</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">📊 My Portfolio</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">📜 My Bets</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">💰 Deposit / Withdraw</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">🏆 Leaderboard</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">📂 Categories</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">ℹ️ How It Works</MenuItem>
-                <MenuItem _hover={{ bg: "#1a2138" }} fontSize="lg">⚙️ Settings</MenuItem>
-                <MenuItem color="red.400" _hover={{ bg: "#1a2138" }} fontSize="lg">🚪 Logout</MenuItem>
-              </MenuList>
-            </Menu>
+        {/* Dashboard pages — user sidebar */}
+        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route path="/portfolio" element={
+            <Portfolio
+              displayName={displayName}
+              displayAddress={displayAddress}
+              displayPhoto={displayPhoto}
+              portfolioValue={portfolioValue}
+              positions={myPositions}
+              onDeposit={openDeposit}
+              onWithdraw={openWithdraw}
+            />
+          } />
+          <Route path="/bookmarks" element={<Bookmarks />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={
+            <Settings
+              displayName={displayName}
+              displayAddress={displayAddress}
+              displayPhoto={displayPhoto}
+              account={account}
+              userEmail={firebaseUser?.email || null}
+            />
+          } />
+        </Route>
 
-            <Button colorScheme="gray" variant="ghost" size="lg" fontWeight="medium">
-              Login
-            </Button>
-            <Button colorScheme="green" size="lg" fontWeight="semibold">
-              Sign Up
-            </Button>
-          </HStack>
-        </Box>
+        {/* Admin — only accessible to users listed in src/data/admins.ts */}
+        <Route path="/admin/*" element={
+          <AdminRoute><AdminDashboard /></AdminRoute>
+        } />
 
-        {/* REST OF THE APP */}
-        <Box p={8}>
-          <Box textAlign="center" mb={12}>
-            <Badge colorScheme="green" fontSize="lg">✅ CONNECTED: {account}</Badge>
-          </Box>
-
-          <HStack justify="center" mb={12} spacing={8}>
-            <Text fontSize="3xl" fontWeight="bold">Balance: <span style={{color:"#4ade80"}}>{usdtBalance} USDT</span></Text>
-            <Button colorScheme="green" size="lg" onClick={getTestUSDT} _hover={{ transform: "scale(1.05)" }}>
-              💰 Get 1000 Test USDT (Free Faucet)
-            </Button>
-          </HStack>
-
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-            {markets.map(m => (
-              <Card key={m.id} bg="#111827" borderWidth="3px" borderColor="#374151" _hover={{ borderColor: "#ffd700", transform: "translateY(-8px)" }} transition="all 0.3s">
-                <CardHeader>
-                  <Badge colorScheme="blue">{m.category}</Badge>
-                  <Heading size="md" mt={3} color="white" lineHeight="1.3">{m.title}</Heading>
-                </CardHeader>
-                <CardBody>
-                  <HStack justify="space-between" mt={4}>
-                    <VStack>
-                      <Text fontSize="xl" fontWeight="bold" color="#4ade80">YES @ {m.yesOdds}</Text>
-                      <Button colorScheme="green" size="md" w="full" onClick={() => { setSelectedMarket(m); setBetSide("yes"); }}>Bet YES</Button>
-                    </VStack>
-                    <VStack>
-                      <Text fontSize="xl" fontWeight="bold" color="#f87171">NO @ {m.noOdds}</Text>
-                      <Button colorScheme="red" size="md" w="full" onClick={() => { setSelectedMarket(m); setBetSide("no"); }}>Bet NO</Button>
-                    </VStack>
-                  </HStack>
-                </CardBody>
-                <CardFooter>
-                  <Text color="#94a3b8">Pool: {m.pool.toLocaleString()} USDT</Text>
-                </CardFooter>
-              </Card>
-            ))}
-          </SimpleGrid>
-        </Box>
-
-        {/* Betting Modal */}
-        {selectedMarket && (
-          <Box position="fixed" inset={0} bg="blackAlpha.800" zIndex={9999} display="flex" alignItems="center" justifyContent="center">
-            <Box bg="#111827" p={10} borderRadius="2xl" maxW="420px" w="full" boxShadow="2xl">
-              <Heading size="lg" mb={6}>{selectedMarket.title}</Heading>
-              <Text mb={6} fontSize="lg">You are betting <strong>{betSide?.toUpperCase()}</strong></Text>
-              <Input placeholder="Amount in USDT" type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} size="lg" mb={8} />
-              <HStack spacing={4}>
-                <Button colorScheme="red" size="lg" onClick={() => setSelectedMarket(null)} w="full">Cancel</Button>
-                <Button colorScheme="green" size="lg" onClick={placeBet} isDisabled={!betAmount} w="full">Confirm Bet</Button>
-              </HStack>
-            </Box>
-          </Box>
-        )}
-      </Box>
-    </ChakraProvider>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      </Suspense>
+    </Box>
   );
 };
 

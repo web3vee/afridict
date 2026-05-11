@@ -1,7 +1,7 @@
 {
-  "name": "afripredict-contracts",
+  "name": "afridict-contracts",
   "version": "1.0.0",
-  "description": "AfriPredict smart contracts — Polygon prediction market",
+  "description": "AfriDict smart contracts — Polygon prediction market",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

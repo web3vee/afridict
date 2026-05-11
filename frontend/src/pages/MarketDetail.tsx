@@ -40,7 +40,7 @@ export default function MarketDetail() {
   // Real-time updates via Socket.io
   useEffect(() => {
     if (!id) return;
-    const socket = io(process.env.REACT_APP_API_URL?.replace("/api", "") || "http://localhost:5000");
+    const socket = io((import.meta.env.VITE_API_URL as string)?.replace("/api", "") || "http://localhost:5000");
     socket.emit("subscribe:market", id);
     socket.on("market:bet", (data) => {
       if (data.marketId === Number(id)) {

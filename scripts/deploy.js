@@ -4,7 +4,7 @@ const path = require("path");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("Deploying AfriPredict contracts with:", deployer.address);
+  console.log("Deploying AfriDict contracts with:", deployer.address);
   console.log("Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "MATIC");
 
   // 1. Deploy Mock USDT (testnet only — on mainnet use real USDT: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F)

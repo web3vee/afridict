@@ -34,7 +34,7 @@ export default function Register() {
     setIsLoading(true);
     try {
       await register(form);
-      toast({ title: "Welcome to AfriPredict! 🌍", status: "success" });
+      toast({ title: "Welcome to AfriDict! 🌍", status: "success" });
       navigate("/");
     } catch (err: any) {
       toast({ title: err.response?.data?.error || "Registration failed", status: "error" });
@@ -47,7 +47,7 @@ export default function Register() {
     <Box maxW="420px" mx="auto" px={4} py={12}>
       <VStack spacing={6}>
         <Heading size="lg" bgGradient="linear(to-r, brand.400, accent.500)" bgClip="text">
-          Join AfriPredict 🌍
+          Join AfriDict 🌍
         </Heading>
 
         <Box w="full" bg="surface.card" p={6} borderRadius="xl" borderWidth="1px" borderColor="surface.border">
@@ -63,7 +63,7 @@ export default function Register() {
               <FormControl isInvalid={!!errors.username}>
                 <FormLabel fontSize="sm">Username</FormLabel>
                 <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  placeholder="afripredictor" bg="surface.bg" borderColor="surface.border" />
+                  placeholder="afridictor" bg="surface.bg" borderColor="surface.border" />
                 <FormErrorMessage>{errors.username}</FormErrorMessage>
               </FormControl>
 

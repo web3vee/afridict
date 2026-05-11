@@ -29,6 +29,9 @@ app.use(express.json());
 // Make io accessible to routes
 app.set("io", io);
 
+// Webhook routes need raw body — mount BEFORE express.json()
+app.use("/api/webhooks", paymentRoutes);
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/markets", marketRoutes);
@@ -49,6 +52,11 @@ io.on("connection", (socket) => {
     console.log(`Socket ${socket.id} subscribed to market ${marketId}`);
   });
 
+  // User joins their own room to receive deposit-success events
+  socket.on("subscribe:user", (userId) => {
+    socket.join(`user:${userId}`);
+  });
+
   socket.on("unsubscribe:market", (marketId) => {
     socket.leave(`market:${marketId}`);
   });
@@ -66,6 +74,6 @@ initBlockchainListener(io).catch(console.error);
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`✅ AfriPredict Backend running on http://localhost:${PORT}`);
+  console.log(`✅ AfriDict Backend running on http://localhost:${PORT}`);
   console.log("Ready for frontend to connect!");
 });

@@ -1,7 +1,7 @@
 {
-  "name": "afripredict-backend",
+  "name": "afridict-backend",
   "version": "1.0.0",
-  "description": "AfriPredict Node.js API backend",
+  "description": "AfriDict Node.js API backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

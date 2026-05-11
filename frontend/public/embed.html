@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Afridict Embed</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:       #111827;
+      --surface:  #1a2234;
+      --border:   #2d3748;
+      --text:     #f3f4f6;
+      --muted:    #6b7280;
+      --yes:      #4ade80;
+      --yes-bg:   rgba(74,222,128,0.18);
+      --yes-bd:   rgba(74,222,128,0.3);
+      --no:       #f87171;
+      --no-bg:    rgba(248,113,113,0.18);
+      --no-bd:    rgba(248,113,113,0.3);
+      --gold:     #ffd700;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: transparent;
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+
+    .widget {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .widget.no-border { border: none; border-radius: 0; }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 5px;
+      text-decoration: none; color: var(--text);
+    }
+
+    .brand-logo { width: 20px; height: 20px; object-fit: contain; border-radius: 4px; }
+    .brand-name { font-size: 13px; font-weight: 700; color: var(--gold); }
+
+    .view-market-link {
+      font-size: 11px; color: var(--muted); text-decoration: none;
+      display: flex; align-items: center; gap: 3px;
+      transition: color .15s;
+    }
+    .view-market-link:hover { color: var(--text); }
+
+    /* ── Title ── */
+    .title-area {
+      padding: 0 14px 8px;
+      display: flex; align-items: flex-start; gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .flag {
+      font-size: 26px; line-height: 1; flex-shrink: 0; margin-top: 1px;
+    }
+
+    .market-title {
+      font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--text);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* ── Chart ── */
+    .chart-area {
+      flex: 1; padding: 0 14px; position: relative; min-height: 0;
+    }
+
+    .chart-svg { width: 100%; height: 100%; display: block; }
+
+    .pct-overlay {
+      position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+      text-align: right;
+    }
+
+    .pct-value {
+      font-size: 30px; font-weight: 800; color: var(--yes); line-height: 1;
+    }
+
+    .pct-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Volume row ── */
+    .volume-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 14px 6px;
+      flex-shrink: 0;
+    }
+
+    .vol-text { font-size: 10px; color: var(--muted); }
+    .time-badge {
+      font-size: 10px; color: var(--muted); background: var(--surface);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; cursor: pointer;
+    }
+
+    /* ── Bet buttons ── */
+    .bet-row {
+      display: flex; gap: 8px; padding: 0 14px 12px;
+      flex-shrink: 0;
+    }
+
+    .bet-btn {
+      flex: 1; padding: 9px 0; border-radius: 8px;
+      font-size: 12px; font-weight: 700; cursor: pointer; border: none;
+      text-decoration: none; text-align: center; display: block;
+      transition: opacity .15s; letter-spacing: 0.2px;
+    }
+
+    .bet-btn:hover { opacity: 0.82; }
+
+    .bet-btn.yes { background: var(--yes-bg); color: var(--yes); border: 1px solid var(--yes-bd); }
+    .bet-btn.no  { background: var(--no-bg);  color: var(--no);  border: 1px solid var(--no-bd);  }
+
+    /* Light theme overrides */
+    .light {
+      --bg:      #ffffff;
+      --surface: #f3f4f6;
+      --border:  #e5e7eb;
+      --text:    #111827;
+      --muted:   #6b7280;
+    }
+  </style>
+</head>
+<body>
+<div class="widget" id="widget">
+  <div class="topbar">
+    <a class="brand" id="brandLink" href="#" target="_blank" rel="noopener">
+      <img class="brand-logo" src="/logo.png" alt="Afridict" onerror="this.style.display='none'"/>
+      <span class="brand-name">Afridict</span>
+    </a>
+    <a class="view-market-link" id="viewLink" href="#" target="_blank" rel="noopener">
+      View Market &rsaquo;
+    </a>
+  </div>
+
+  <div class="title-area">
+    <div class="flag" id="flagEmoji">🌍</div>
+    <div class="market-title" id="marketTitle">Loading...</div>
+  </div>
+
+  <div class="chart-area" id="chartArea">
+    <svg class="chart-svg" id="chartSvg" viewBox="0 0 340 90" preserveAspectRatio="none"></svg>
+    <div class="pct-overlay" id="pctOverlay">
+      <div class="pct-value" id="pctValue">50%</div>
+      <div class="pct-label">YES chance</div>
+    </div>
+  </div>
+
+  <div class="volume-row" id="volRow">
+    <span class="vol-text" id="volText">$0 Vol.</span>
+    <span class="time-badge">All time ↓</span>
+  </div>
+
+  <div class="bet-row" id="betRow">
+    <a class="bet-btn yes" id="betYes" href="#" target="_blank" rel="noopener">Yes <span id="yesCents">50¢</span></a>
+    <a class="bet-btn no"  id="betNo"  href="#" target="_blank" rel="noopener">No <span id="noCents">50¢</span></a>
+  </div>
+</div>
+
+<script>
+  function p(name) { return new URLSearchParams(window.location.search).get(name) || ''; }
+
+  const title    = p('title')    || 'Prediction Market';
+  const yesOdds  = parseFloat(p('yes'))  || 1.9;
+  const noOdds   = parseFloat(p('no'))   || 1.9;
+  const pool     = parseFloat(p('pool')) || 0;
+  const category = p('category') || '';
+  const marketId = p('id')       || '';
+  const theme    = p('theme')    || 'dark';
+  const border   = p('border')   !== 'false';
+  const showChart       = p('chart')    !== 'false';
+  const showBuyBtns     = p('buybtns') !== 'false';
+  const showVolume      = p('volume')  !== 'false';
+  const showLive        = p('live')    !== 'false';
+
+  // Compute probabilities from decimal odds
+  const yp_raw = 1 / yesOdds;
+  const np_raw = 1 / noOdds;
+  const total  = yp_raw + np_raw;
+  const yesPct = Math.round((yp_raw / total) * 100);
+  const noPct  = 100 - yesPct;
+
+  // Cent prices
+  const yesCents = yesPct;
+  const noCents  = noPct;
+
+  const marketUrl = window.location.origin + '/?market=' + encodeURIComponent(marketId);
+
+  // Category → flag emoji
+  const FLAGS = {
+    'Sports': '⚽', 'Elections': '🗳️', 'Economy': '💹',
+    'Commodities': '📦', 'Crypto': '₿', 'Security': '🛡️',
+    'Politics': '🏛️', 'Weather': '🌦️', 'Finance': '💰',
+  };
+
+  // Apply theme
+  if (theme === 'light') document.querySelector('.widget').classList.add('light');
+  if (!border)           document.querySelector('.widget').classList.add('no-border');
+  if (!showChart)        document.getElementById('chartArea').style.display = 'none';
+  if (!showBuyBtns)      document.getElementById('betRow').style.display = 'none';
+  if (!showVolume)       document.getElementById('volRow').style.display = 'none';
+
+  // Fill content
+  document.getElementById('marketTitle').textContent = decodeURIComponent(title);
+  document.getElementById('flagEmoji').textContent   = FLAGS[category] || '🌍';
+  document.getElementById('pctValue').textContent    = yesPct + '%';
+  document.getElementById('yesCents').textContent    = yesCents + '¢';
+  document.getElementById('noCents').textContent     = noCents + '¢';
+  document.getElementById('volText').textContent     = '$' + pool.toLocaleString() + ' Vol.';
+  document.getElementById('brandLink').href          = window.location.origin;
+  document.getElementById('viewLink').href           = marketUrl;
+  document.getElementById('betYes').href             = marketUrl;
+  document.getElementById('betNo').href              = marketUrl;
+
+  // Live dot
+  if (showLive) {
+    const dot = document.createElement('span');
+    dot.style.cssText = 'display:inline-block;width:6px;height:6px;background:#4ade80;border-radius:50%;margin-right:4px;animation:pulse 2s infinite';
+    document.querySelector('.view-market-link').prepend(dot);
+    const style = document.createElement('style');
+    style.textContent = '@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}';
+    document.head.appendChild(style);
+  }
+
+  // Draw sparkline chart
+  if (showChart) {
+    // Generate a plausible probability path ending at yesPct
+    const pts = [];
+    const steps = 28;
+    let val = 50;
+    for (let i = 0; i <= steps; i++) {
+      const noise = (Math.sin(i * 0.7) * 12) + (Math.cos(i * 0.4) * 8) + (Math.random() * 6 - 3);
+      val = 50 + ((yesPct - 50) * (i / steps)) + noise * (1 - i / steps);
+      val = Math.max(5, Math.min(95, val));
+      pts.push({ x: (i / steps) * 340, y: 90 - (val / 100) * 90 });
+    }
+    // Force last point to actual value
+    pts[pts.length - 1].y = 90 - (yesPct / 100) * 90;
+
+    const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const fillD = pathD + ` L340,90 L0,90 Z`;
+
+    const svg = document.getElementById('chartSvg');
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="yesGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4ade80" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${fillD}" fill="url(#yesGrad)" />
+      <path d="${pathD}" fill="none" stroke="#4ade80" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${pts[pts.length-1].x.toFixed(1)}" cy="${pts[pts.length-1].y.toFixed(1)}" r="3.5" fill="#4ade80"/>
+    `;
+  }
+</script>
+</body>
+</html>

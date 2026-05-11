@@ -1,4 +1,4 @@
-# 🌍 AfriPredict — African Prediction Market Platform
+# 🌍 AfriDict — African Prediction Market Platform
 
 Africa's first decentralized prediction market built on Polygon. Predict elections, sports, commodity prices, and economic events with USDT. Fund via Flutterwave or Paystack in NGN, KES, ZAR, or GHS.
 
@@ -52,7 +52,7 @@ Data Flow:
 ## Project Structure
 
 ```
-afripredict/
+afridict/
 ├── contracts/                  # Solidity smart contracts
 │   ├── PredictionMarket.sol    # Main contract
 │   ├── MockUSDT.sol            # Test USDT token
@@ -115,7 +115,7 @@ afripredict/
 ### Step 1: Install contract dependencies
 
 ```bash
-cd afripredict
+cd afridict
 npm install
 ```
 
