@@ -8,6 +8,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 
 const Landing        = lazy(() => import('./pages/Landing'));
+const Login          = lazy(() => import('./pages/Login'));
+const Register       = lazy(() => import('./pages/Register'));
 const CategoryPage   = lazy(() => import('./pages/CategoryPage'));
 const MentionsPage       = lazy(() => import('./pages/MentionsPage'));
 const MentionDetailPage  = lazy(() => import('./pages/MentionDetailPage'));
@@ -56,6 +58,10 @@ const App = () => {
         </Box>
       }>
       <Routes>
+
+        {/* Auth pages — no layout */}
+        <Route path="/login"    element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Public pages — Navbar + Footer */}
         <Route element={<MainLayout />}>

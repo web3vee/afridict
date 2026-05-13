@@ -70,10 +70,7 @@ export default function AdminLayout() {
               <Text fontSize="lg">🔔</Text>
               <Box position="absolute" top={0} right={0} w={2} h={2} bg="#f87171" borderRadius="full" />
             </Box>
-            <Button size="sm" variant="ghost" onClick={c.toggleColorMode} borderRadius="lg" px={2}
-              color={c.adminSecondaryColor} _hover={{ bg: c.adminInputBg }} title="Toggle theme">
-              {c.colorMode === 'dark' ? '☀️' : '🌙'}
-            </Button>
+
             <Box w={8} h={8} bg="linear-gradient(135deg,#ffd700,#f59e0b)" borderRadius="full"
               display="flex" alignItems="center" justifyContent="center" cursor="pointer">
               <Text fontSize="xs" fontWeight="800" color="gray.900">A</Text>

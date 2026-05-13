@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box, Heading, HStack, SimpleGrid, Text, VStack,
   useColorModeValue,
@@ -94,24 +94,26 @@ export default function Landing({
   const textColor    = useColorModeValue('#1e293b',  '#e2e8f0');
   const mutedColor   = useColorModeValue('#475569',  '#94a3b8');
 
+  const [sortBy, setSortBy] = useState<'popular' | 'newest' | 'best_odds'>('popular');
+
   const visibleMarkets = useMemo(() => {
+    let base: typeof markets;
     if (activeCategory === 'Trending') {
-      // Highest pool (most volume), top 10
-      return [...markets].sort((a, b) => (b.pool ?? 0) - (a.pool ?? 0)).slice(0, 10);
-    }
-    if (activeCategory === 'Breaking') {
-      // Most uneven odds — markets where one side is heavily favoured (strong signal)
-      return [...markets]
+      base = [...markets].sort((a, b) => (b.pool ?? 0) - (a.pool ?? 0)).slice(0, 10);
+    } else if (activeCategory === 'Breaking') {
+      base = [...markets]
         .filter(m => (m.yesOdds ?? 2) > 2.3 || (m.noOdds ?? 2) > 2.3)
         .sort((a, b) => Math.max(b.yesOdds ?? 2, b.noOdds ?? 2) - Math.max(a.yesOdds ?? 2, a.noOdds ?? 2))
         .slice(0, 10);
+    } else if (activeCategory === 'New') {
+      base = [...markets].sort((a, b) => (b.id ?? 0) - (a.id ?? 0)).slice(0, 10);
+    } else {
+      base = markets.filter(m => m.category === activeCategory);
     }
-    if (activeCategory === 'New') {
-      // Highest IDs = most recently added
-      return [...markets].sort((a, b) => (b.id ?? 0) - (a.id ?? 0)).slice(0, 10);
-    }
-    return markets.filter(m => m.category === activeCategory);
-  }, [markets, activeCategory]);
+    if (sortBy === 'newest')    return [...base].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+    if (sortBy === 'best_odds') return [...base].sort((a, b) => Math.max(b.yesOdds ?? 2, b.noOdds ?? 2) - Math.max(a.yesOdds ?? 2, a.noOdds ?? 2));
+    return [...base].sort((a, b) => (b.pool ?? 0) - (a.pool ?? 0));
+  }, [markets, activeCategory, sortBy]);
 
   return (
     <>
@@ -149,11 +151,32 @@ export default function Landing({
       {/* ── ALL MARKETS ── */}
       <Box id="all-markets" py={14} px={{ base: 4, lg: 10 }} bg={pageBg}>
         <Box maxW="1300px" mx="auto">
-          <HStack justify="space-between" mb={8} flexWrap="wrap" gap={3}>
+          <HStack justify="space-between" mb={8} flexWrap="wrap" gap={3} align="flex-end">
             <Box>
               <Text fontSize="xs" fontWeight="700" letterSpacing="widest" color="#ffd700" textTransform="uppercase" mb={1}>All Markets</Text>
               <Heading fontSize="2xl" fontWeight="800" color={headingColor}>Browse &amp; Predict</Heading>
             </Box>
+            <HStack spacing={1}>
+              <Text fontSize="xs" color={mutedColor} fontWeight="600" mr={1}>Sort:</Text>
+              {([
+                { key: 'popular',   label: '🔥 Popular'   },
+                { key: 'newest',    label: '✨ Newest'     },
+                { key: 'best_odds', label: '📈 Best Odds'  },
+              ] as const).map(opt => (
+                <Box key={opt.key}
+                  px={3} py={1} borderRadius="full" cursor="pointer" fontSize="xs" fontWeight="600"
+                  border="1px solid"
+                  borderColor={sortBy === opt.key ? '#ffd700' : borderColor}
+                  color={sortBy === opt.key ? '#ffd700' : mutedColor}
+                  bg={sortBy === opt.key ? 'rgba(255,215,0,0.08)' : 'transparent'}
+                  _hover={{ borderColor: '#ffd700', color: '#ffd700' }}
+                  transition="all 0.15s"
+                  onClick={() => setSortBy(opt.key)}
+                >
+                  {opt.label}
+                </Box>
+              ))}
+            </HStack>
           </HStack>
           {visibleMarkets.length === 0 ? (
             <Box py={20} textAlign="center">

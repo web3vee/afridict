@@ -1,93 +1,60 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import api from "../services/api";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+import { auth } from '../firebase';
+import { useApp } from '../context/AppContext';
 
 interface User {
-  id: string;
-  email: string;
-  username: string;
-  walletAddress?: string;
-  country: string;
-  currency: string;
-  language: string;
+  id: string; email: string; username: string;
+  country: string; currency: string; language: string;
   kyc: { status: string };
   balance: { usdt: number };
-  totalBets: number;
-  totalWinnings: number;
-  referralCode: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
-  refreshUser: () => Promise<void>;
+  totalBets: number; totalWinnings: number; referralCode: string;
 }
 
 interface RegisterData {
-  email: string;
-  password: string;
-  username: string;
-  country: string;
-  currency?: string;
-  language?: string;
-  referralCode?: string;
+  email: string; password: string; username: string; country: string;
+  currency?: string; language?: string; referralCode?: string;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+// Bridges Firebase auth to the interface expected by Login / Register / Dashboard.
+// No AuthProvider needed — state lives in AppContext (firebaseUser, cashBalance).
+export function useAuth() {
+  const { firebaseUser, cashBalance, authLoading, logout: appLogout } = useApp();
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-  const [isLoading, setIsLoading] = useState(!!localStorage.getItem("token"));
+  const login = (email: string, password: string): Promise<void> =>
+    signInWithEmailAndPassword(auth, email, password).then(() => undefined);
 
-  const refreshUser = useCallback(async () => {
-    try {
-      const res = await api.get("/auth/me");
-      setUser(res.data.user);
-    } catch {
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem("token");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (token) {
-      setIsLoading(true);
-      refreshUser().finally(() => setIsLoading(false));
-    }
-  }, [token, refreshUser]);
-
-  const login = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
-    const { token: newToken, user: newUser } = res.data;
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
-    setUser(newUser);
+  const register = async (data: RegisterData): Promise<void> => {
+    const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+    await updateProfile(cred.user, { displayName: data.username });
   };
 
-  const register = async (data: RegisterData) => {
-    const res = await api.post("/auth/register", data);
-    const { token: newToken, user: newUser } = res.data;
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
-    setUser(newUser);
-  };
+  const user: User | null = firebaseUser
+    ? {
+        id: firebaseUser.uid,
+        email: firebaseUser.email ?? '',
+        username: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'User',
+        country: 'Other',
+        currency: 'USDT',
+        language: 'en',
+        kyc: { status: 'none' },
+        balance: { usdt: cashBalance },
+        totalBets: 0,
+        totalWinnings: 0,
+        referralCode: firebaseUser.uid.slice(0, 8).toUpperCase(),
+      }
+    : null;
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
-    setUser(null);
+  return {
+    user,
+    token: null as string | null,
+    isLoading: authLoading,
+    login,
+    register,
+    logout: appLogout,
+    refreshUser: async () => {},
   };
-
-  return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, refreshUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
 }
-
-export const useAuth = () => useContext(AuthContext);

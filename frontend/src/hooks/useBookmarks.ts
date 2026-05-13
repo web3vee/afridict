@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = 'afripredict_bookmarks';
+const STORAGE_KEY = 'afridict_bookmarks';
 
 function loadFromStorage(): Record<number, any> {
   try {

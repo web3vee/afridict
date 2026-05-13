@@ -160,7 +160,7 @@ export default function QuickBetModal({ market, initialSide, onClose, onBetSucce
             <VStack spacing={1} textAlign="center">
               <Text fontSize="md" fontWeight="800" color={headingColor}>No balance yet</Text>
               <Text fontSize="sm" color={mutedColor} maxW="260px" lineHeight="1.6">
-                Deposit USDT to start placing predictions on AfriPredict
+                Deposit USDT to start placing predictions on AfriDict
               </Text>
             </VStack>
             <Box bg={subtleBg} border="1px solid" borderColor={borderColor} borderRadius="xl" p={4} w="full">

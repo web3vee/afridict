@@ -115,11 +115,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [embedMarket,    setEmbedMarket]    = useState<any>(null);
 
   const [cashBalance,  setCashBalance]  = useState<number>(() => {
-    try { return parseFloat(localStorage.getItem('afripredict_balance') || '0') || 0; } catch { return 0; }
+    try { return parseFloat(localStorage.getItem('afridict_balance') || '0') || 0; } catch { return 0; }
   });
   const [myPositions, setMyPositions]   = useState<typeof MY_POSITIONS_INITIAL>([]);
   const [pendingMarkets, setPendingMarkets] = useState<any[]>(() => {
-    try { return JSON.parse(localStorage.getItem('afripredict_pending') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('afridict_pending') || '[]'); } catch { return []; }
   });
   const [markets, setMarkets] = useState<any[]>(MARKETS);
 
@@ -129,17 +129,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    localStorage.setItem('afripredict_pending', JSON.stringify(pendingMarkets));
+    localStorage.setItem('afridict_pending', JSON.stringify(pendingMarkets));
   }, [pendingMarkets]);
 
   useEffect(() => {
-    localStorage.setItem('afripredict_balance', String(cashBalance));
+    localStorage.setItem('afridict_balance', String(cashBalance));
   }, [cashBalance]);
 
   // Sync pendingMarkets from localStorage when another tab writes to it
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'afripredict_pending') {
+      if (e.key === 'afridict_pending') {
         try { setPendingMarkets(JSON.parse(e.newValue || '[]')); } catch {}
       }
     };

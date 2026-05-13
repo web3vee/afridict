@@ -541,7 +541,7 @@ export default function MarketDetailModal({ market, onClose, onEmbed, onBetSucce
                     <>
                       <Box mb={3} px={3} py={2} bg="rgba(245,158,11,.08)" border="1px solid rgba(245,158,11,.2)" borderRadius="lg">
                         <Text fontSize="11px" color="#f59e0b" lineHeight="1.6">
-                          ⚠️ Do not click on external links shared in comments. AfriPredict will never ask for your wallet seed phrase or private keys.
+                          ⚠️ Do not click on external links shared in comments. AfriDict will never ask for your wallet seed phrase or private keys.
                         </Text>
                       </Box>
                       <VStack align="stretch" spacing={3} maxH="180px" overflowY="auto" mb={4}>
