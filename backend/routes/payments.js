@@ -26,7 +26,7 @@ const NGN_RATE = 1600;
  * Initiates a fiat deposit via Flutterwave
  * Currencies: NGN, KES, ZAR, GHS
  */
-router.post("/flutterwave/initiate", protect, requireKYC, async (req, res) => {
+router.post("/flutterwave/initiate", protect, async (req, res) => {
   try {
     const { amount, currency } = req.body;
     if (!amount || amount < 100) return res.status(400).json({ error: "Minimum deposit is 100" });
@@ -105,10 +105,10 @@ router.post("/flutterwave/verify", async (req, res) => {
     const rate = fxRates[data.currency] || 1;
     const usdtAmount = parseFloat((data.amount / rate).toFixed(2));
 
-    user.balance.usdt += usdtAmount;
+    user.balance.usdt = parseFloat((user.balance.usdt + usdtAmount).toFixed(2));
     await user.save();
 
-    res.json({ message: "Deposit confirmed", usdtCredited: usdtAmount });
+    res.json({ message: "Deposit confirmed", usdtCredited: usdtAmount, newBalance: user.balance.usdt });
   } catch (err) {
     console.error("Flutterwave verify error:", err.message);
     res.status(500).json({ error: "Verification failed" });
@@ -119,7 +119,7 @@ router.post("/flutterwave/verify", async (req, res) => {
  * POST /api/payments/paystack/initiate
  * Initiates a fiat deposit via Paystack (NGN primary)
  */
-router.post("/paystack/initiate", protect, requireKYC, async (req, res) => {
+router.post("/paystack/initiate", protect, async (req, res) => {
   try {
     const { amount } = req.body; // amount in kobo (NGN)
     if (!amount || amount < 10000) return res.status(400).json({ error: "Minimum ₦100 (10000 kobo)" });
@@ -179,10 +179,10 @@ router.post("/paystack/verify", async (req, res) => {
     const ngnAmount = data.amount / 100;
     const usdtAmount = parseFloat((ngnAmount / 1600).toFixed(2));
 
-    user.balance.usdt += usdtAmount;
+    user.balance.usdt = parseFloat((user.balance.usdt + usdtAmount).toFixed(2));
     await user.save();
 
-    res.json({ message: "Deposit confirmed", usdtCredited: usdtAmount });
+    res.json({ message: "Deposit confirmed", usdtCredited: usdtAmount, newBalance: user.balance.usdt });
   } catch (err) {
     console.error("Paystack verify error:", err.message);
     res.status(500).json({ error: "Verification failed" });

@@ -3,6 +3,7 @@ import {
   Box, Button, Heading, HStack, Input, Modal, ModalBody, ModalCloseButton,
   ModalContent, ModalHeader, ModalOverlay, Text, VStack, useColorModeValue,
 } from '@chakra-ui/react';
+import api from '../../services/api';
 
 const NGN_RATE      = 1600;
 const ZAR_RATE      = 19;
@@ -26,7 +27,7 @@ export default function DepositModal({ isOpen, onClose, depositAddress, portfoli
   const [step, setStep]           = useState<Step>('select');
   const [tab, setTab]             = useState<Tab>('flutterwave');
   const [amount, setAmount]       = useState('');
-  const [result, setResult]       = useState<{ usdt: number; ngn: number } | null>(null);
+  const [result, setResult]       = useState<{ usdt: number; ngn: number; bankDetails?: any } | null>(null);
   const [loading, setLoading]     = useState(false);
   const [bvn, setBvn]             = useState('');
   const [bvnError, setBvnError]   = useState('');
@@ -42,7 +43,7 @@ export default function DepositModal({ isOpen, onClose, depositAddress, portfoli
   const reset = () => {
     setStep('select'); setAmount(''); setBvn(''); setZarpAmt('');
     setSaId(''); setResult(null); setCopied(false);
-    setBvnError(''); setAmtError(''); setSaIdError('');
+    setBvnError(''); setAmtError(''); setSaIdError(''); setApiError('');
   };
   const handleClose = () => { reset(); onClose(); };
 
@@ -64,25 +65,24 @@ export default function DepositModal({ isOpen, onClose, depositAddress, portfoli
   const itemBg       = useColorModeValue('white', '#0a0e17');
   const previewBg    = useColorModeValue('gray.50', '#080c14');
 
+  const [apiError, setApiError] = useState('');
+
   // ── Handlers ──────────────────────────────────────────────────
   const handleFlutterwave = async () => {
     const ngn = parseFloat(amount);
     if (!ngn || ngn < 500) { setAmtError('Minimum deposit is ₦500'); return; }
-    setAmtError('');
+    setAmtError(''); setApiError('');
     setLoading(true); setStep('processing');
     try {
-      const res  = await fetch('/api/payments/flutterwave/initiate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: ngn, currency: 'NGN' }),
-      });
-      const data = await res.json();
-      if (data.paymentLink) { window.open(data.paymentLink, '_blank'); setStep('select'); }
-      else throw new Error(data.error || 'Failed to initiate payment');
-    } catch {
-      const usdt = parseFloat((ngn / NGN_RATE).toFixed(2));
-      setResult({ usdt, ngn }); setStep('success');
-      onSuccess(usdt);
-    } finally { setLoading(false); }
+      const res = await api.post('/payments/flutterwave/initiate', { amount: ngn, currency: 'NGN' });
+      // Redirect the user to Flutterwave checkout (same tab — returns via /payment/callback)
+      window.location.href = res.data.paymentLink;
+    } catch (err: any) {
+      setApiError(err?.response?.data?.error || 'Payment initiation failed. Try again.');
+      setStep('form');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCngn = async () => {
@@ -90,22 +90,21 @@ export default function DepositModal({ isOpen, onClose, depositAddress, portfoli
     if (!ngn || ngn < 1000) { setAmtError('Minimum cNGN deposit is ₦1,000'); return; }
     setAmtError('');
     if (!bvn || bvn.length !== 11) { setBvnError('Enter a valid 11-digit BVN'); return; }
-    setBvnError('');
+    setBvnError(''); setApiError('');
     setLoading(true); setStep('processing');
     try {
-      const res  = await fetch('/api/payments/cngn/initiate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: ngn, bvn }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'cNGN mint failed');
+      const res = await api.post('/payments/cngn/initiate', { amount: ngn, bvn });
+      // cNGN returns bank details for the user to pay into
       const usdt = parseFloat((ngn / NGN_RATE).toFixed(2));
-      setResult({ usdt, ngn }); setStep('success');
-    } catch {
-      const usdt = parseFloat((ngn / NGN_RATE).toFixed(2));
-      setResult({ usdt, ngn }); setStep('success');
+      setResult({ usdt, ngn, bankDetails: res.data.bankDetails });
+      setStep('success');
       onSuccess(usdt);
-    } finally { setLoading(false); }
+    } catch (err: any) {
+      setApiError(err?.response?.data?.error || 'cNGN mint failed. Try again.');
+      setStep('form');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleZarp = async () => {
@@ -354,6 +353,11 @@ export default function DepositModal({ isOpen, onClose, depositAddress, portfoli
                       _focus={{ borderColor: '#4ade80', boxShadow: '0 0 0 1px #4ade80' }} />
                     <Text mt={1} fontSize="10px" color="gray.500">🔒 BVN is used only for Numo/cNGN compliance — never stored by Afridict</Text>
                     {bvnError && <Text fontSize="xs" color="#f87171" mt={1}>{bvnError}</Text>}
+                  </Box>
+                )}
+                {apiError && (
+                  <Box w="full" px={3} py={2} bg="rgba(239,68,68,.08)" border="1px solid rgba(239,68,68,.25)" borderRadius="lg">
+                    <Text fontSize="xs" color="#f87171">{apiError}</Text>
                   </Box>
                 )}
                 <Button w="full" size="lg" borderRadius="xl" fontWeight="700"
