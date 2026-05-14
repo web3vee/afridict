@@ -39,6 +39,7 @@ interface AppContextValue {
   logout: () => void;
   portfolioValue: number;
   cashBalance: number;
+  setBalance: (n: number) => void;
   myPositions: typeof MY_POSITIONS_INITIAL;
   language: Language;
   setLanguage: (l: Language) => void;
@@ -250,7 +251,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isLoggedIn, authLoading, authenticated,
     displayName, displayPhoto, displayAddress, account: account ?? null, firebaseUser, userEmail, isAdminUser,
     login, logout,
-    portfolioValue, cashBalance, myPositions,
+    portfolioValue, cashBalance, setBalance: setCashBalance, myPositions,
     language, setLanguage,
     activeCategory, howItWorksStep, setHowItWorksStep,
     onCategoryChange,
@@ -263,7 +264,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isLoggedIn, authLoading, authenticated,
     displayName, displayPhoto, displayAddress, account, firebaseUser, userEmail, isAdminUser,
     login, logout,
-    portfolioValue, cashBalance, myPositions,
+    portfolioValue, cashBalance, setCashBalance, myPositions,
     language, activeCategory, howItWorksStep,
     onCategoryChange,
     openDeposit, openWithdraw, openSearch, openCreateMarket, openMarketDetail, openEmbed, openBetYes, openBetNo,

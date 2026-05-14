@@ -10,6 +10,7 @@ const LOGO2 = '/mylogo2.png';
 import OrderBook from '../mentions/OrderBook';
 import { useBookmarks } from '../../hooks/useBookmarks';
 import { useApp } from '../../context/AppContext';
+import api from '../../services/api';
 import { MARKETS } from '../../data/staticData';
 import { Bookmark, Settings as SettingsIcon, X, Maximize2, Wallet } from 'lucide-react';
 
@@ -78,7 +79,7 @@ type Tab = 'orderbook' | 'graph' | 'resolution';
 export default function MarketDetailModal({ market, onClose, onEmbed, onBetSuccess }: MarketDetailModalProps) {
   const { colorMode } = useColorMode();
   const { isBookmarked, toggleBookmark } = useBookmarks();
-  const { cashBalance, openDeposit, isLoggedIn, login } = useApp();
+  const { cashBalance, setBalance, openDeposit, isLoggedIn, login } = useApp();
 
   const [tab,             setTab]             = useState<Tab>('graph');
   const [linkCopied,      setLinkCopied]      = useState(false);
@@ -101,11 +102,14 @@ export default function MarketDetailModal({ market, onClose, onEmbed, onBetSucce
   const [betPlaced,       setBetPlaced]       = useState(false);
   const [betPlacedSide,   setBetPlacedSide]   = useState<'yes' | 'no'>('yes');
   const [betPlacedAmt,    setBetPlacedAmt]    = useState(0);
+  const [betLoading,      setBetLoading]      = useState(false);
+  const [betError,        setBetError]        = useState<string | null>(null);
 
   // Reset success state whenever a different market is opened
   const marketId = market?.contractId ?? market?.id;
   useEffect(() => {
     setBetPlaced(false);
+    setBetError(null);
     setAmount('');
     setShares('');
     setSide('yes');
@@ -212,15 +216,26 @@ export default function MarketDetailModal({ market, onClose, onEmbed, onBetSucce
 
   const relTabs = ['All', market?.category, 'Mentions'].filter(Boolean) as string[];
 
-  const placeBet = () => {
+  const placeBet = async () => {
     if (buySell === 'buy' && orderType === 'market' && amountNum < 0.5) return;
     if ((buySell === 'sell' || orderType === 'limit') && sharesNum <= 0) return;
-    setBetPlacedSide(side);
-    setBetPlacedAmt(amountNum);
-    setBetPlaced(true);
-    onBetSuccess(side);
-    setAmount('');
-    setShares('');
+    setBetError(null);
+    setBetLoading(true);
+    try {
+      const marketId = market?.id ?? market?.contractId;
+      const res = await api.post('/bets', { marketId, side, amount: amountNum });
+      setBetPlacedSide(side);
+      setBetPlacedAmt(amountNum);
+      setBetPlaced(true);
+      setBalance(res.data.newBalance);
+      onBetSuccess(side);
+      setAmount('');
+      setShares('');
+    } catch (err: any) {
+      setBetError(err?.response?.data?.error || 'Failed to place bet. Try again.');
+    } finally {
+      setBetLoading(false);
+    }
   };
 
   if (!market) return null;
@@ -1125,10 +1140,18 @@ export default function MarketDetailModal({ market, onClose, onEmbed, onBetSucce
                   </>
                 )}
 
+                {/* ── Inline error ── */}
+                {betError && (
+                  <Box mb={3} px={3} py={2} bg="rgba(239,68,68,.08)" border="1px solid rgba(239,68,68,.25)" borderRadius="lg">
+                    <Text fontSize="xs" color="#ef4444">{betError}</Text>
+                  </Box>
+                )}
+
                 {/* ── ACTION BUTTON ── */}
                 <Button w="full" borderRadius="xl" fontWeight="800" size="md" color="white"
                   bg={buySell === 'buy' ? '#3b82f6' : '#ef4444'}
                   _hover={{ opacity: .9, transform: 'translateY(-1px)' }} transition="all .2s"
+                  isLoading={betLoading} loadingText="Placing…"
                   onClick={placeBet}>
                   {buySell === 'buy'
                     ? orderType === 'market'

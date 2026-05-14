@@ -3,6 +3,7 @@ import {
   Box, Button, HStack, Heading, Input, SimpleGrid, Text, Textarea, VStack, Badge,
 } from '@chakra-ui/react';
 import { useAdminColors } from './useAdminColors';
+import api from '../../services/api';
 
 interface Market {
   id: number;
@@ -35,19 +36,28 @@ function AdminMarkets({ adminMarkets, setAdminMarkets, adminSearch, pendingMarke
     adminMarkets.filter(m => !adminSearch || m.title.toLowerCase().includes(adminSearch.toLowerCase())),
   [adminMarkets, adminSearch]);
 
-  const handleApprove = (m: any) => {
-    const newId = Math.max(...adminMarkets.map(x => x.id), 0) + 1;
+  const handleApprove = async (m: any) => {
+    // Call API if we have a DB id from the submission
+    if (m._dbId) {
+      try { await api.patch(`/markets/${m._dbId}/approve`); } catch {}
+    }
+    const newId = m._dbId ?? Math.max(...adminMarkets.map(x => x.id), 0) + 1;
     const today = new Date().toISOString().slice(0, 10);
-    // Add to admin table
     setAdminMarkets(prev => [...prev, {
       id: newId, title: m.title, category: m.category,
       pool: 0, yes: 50, status: 'active', created: today,
     }]);
-    // Add to live public markets (AppContext)
     addMarket({
       id: newId, title: m.title, category: m.category, country: m.country || '',
       yesOdds: 2.00, noOdds: 2.00, pool: 0,
     });
+    removePendingMarket(m.id);
+  };
+
+  const handleReject = async (m: any) => {
+    if (m._dbId) {
+      try { await api.patch(`/markets/${m._dbId}/reject`); } catch {}
+    }
     removePendingMarket(m.id);
   };
 
@@ -152,7 +162,7 @@ function AdminMarkets({ adminMarkets, setAdminMarkets, adminSearch, pendingMarke
                     _hover={{ bg: '#22c55e' }} onClick={() => handleApprove(m)}
                   >✓ Approve & Publish</Button>
                   <Button flex={1} size="sm" variant="outline" borderColor="#f87171" color="#f87171" fontWeight="800"
-                    borderRadius="lg" _hover={{ bg: 'rgba(248,113,113,.1)' }} onClick={() => removePendingMarket(m.id)}
+                    borderRadius="lg" _hover={{ bg: 'rgba(248,113,113,.1)' }} onClick={() => handleReject(m)}
                   >✕ Reject</Button>
                 </HStack>
               </Box>
@@ -266,7 +276,12 @@ function AdminMarkets({ adminMarkets, setAdminMarkets, adminSearch, pendingMarke
                 bg={resolveTarget.side === 'YES' ? '#4ade80' : '#f87171'}
                 color="gray.900"
                 _hover={{ opacity: 0.9 }}
-                onClick={() => {
+                onClick={async () => {
+                  try {
+                    await api.patch(`/markets/${resolveTarget.market.id}/resolve`, {
+                      outcome: resolveTarget.side.toLowerCase(),
+                    });
+                  } catch {}
                   setAdminMarkets(prev => prev.map(x =>
                     x.id === resolveTarget.market.id
                       ? { ...x, status: 'resolved', yes: resolveTarget.side === 'YES' ? 100 : 0 }

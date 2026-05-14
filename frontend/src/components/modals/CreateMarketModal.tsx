@@ -6,6 +6,7 @@ import {
 } from '@chakra-ui/react';
 import { CheckCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import api from '../../services/api';
 
 interface CreateMarketModalProps {
   isOpen: boolean;
@@ -62,6 +63,8 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
   const { submitMarketForReview } = useApp();
   const [step, setStep]                   = useState<Step>(1);
   const [submitted, setSubmitted]         = useState(false);
+  const [submitting, setSubmitting]       = useState(false);
+  const [submitError, setSubmitError]     = useState<string | null>(null);
 
   // Step 1 fields
   const [title, setTitle]                 = useState('');
@@ -456,8 +459,26 @@ export default function CreateMarketModal({ isOpen, onClose }: CreateMarketModal
                       bg="#ffd700" color="#0f1623"
                       _hover={{ bg: '#f5c800', transform: 'translateY(-1px)' }}
                       transition="all .2s"
-                      onClick={() => {
-                        submitMarketForReview({ title, category, country, endDate, criteria, source });
+                      isLoading={submitting} loadingText="Submitting…"
+                      onClick={async () => {
+                        setSubmitError(null);
+                        setSubmitting(true);
+                        let dbId: number | undefined;
+                        try {
+                          const res = await api.post('/markets', {
+                            title,
+                            category,
+                            region: country,
+                            endTime: endDate,
+                            tags: [criteria, source].filter(Boolean),
+                          });
+                          dbId = res.data?.id;
+                        } catch {
+                          // Backend offline — fall through to local state only
+                        } finally {
+                          setSubmitting(false);
+                        }
+                        submitMarketForReview({ title, category, country, endDate, criteria, source, _dbId: dbId });
                         setSubmitted(true);
                       }}
                     >
