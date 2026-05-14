@@ -9,6 +9,7 @@ import { auth, onAuthStateChanged } from '../firebase';
 import type { User } from '../firebase';
 import { Box, HStack, Text } from '@chakra-ui/react';
 import { LANGUAGES, MARKETS, MY_POSITIONS_INITIAL } from '../data/staticData';
+import api from '../services/api';
 import { isAdmin } from '../data/admins';
 
 // Lazy-load modals so they're excluded from the initial bundle
@@ -117,11 +118,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cashBalance,  setCashBalance]  = useState<number>(() => {
     try { return parseFloat(localStorage.getItem('afridict_balance') || '0') || 0; } catch { return 0; }
   });
+
+  // Sync balance from DB whenever the Firebase user changes (login / refresh)
+  useEffect(() => {
+    if (!firebaseUser) return;
+    api.get('/auth/me').then(res => {
+      const dbBalance = res.data?.user?.balance?.usdt;
+      if (typeof dbBalance === 'number') setCashBalance(dbBalance);
+    }).catch(() => { /* backend offline — localStorage balance remains */ });
+  }, [firebaseUser]);
   const [myPositions, setMyPositions]   = useState<typeof MY_POSITIONS_INITIAL>([]);
   const [pendingMarkets, setPendingMarkets] = useState<any[]>(() => {
     try { return JSON.parse(localStorage.getItem('afridict_pending') || '[]'); } catch { return []; }
   });
   const [markets, setMarkets] = useState<any[]>(MARKETS);
+
+  // Fetch markets from API on mount; fall back to staticData if backend is down
+  useEffect(() => {
+    api.get('/markets?limit=200').then(res => {
+      const data = res.data?.markets;
+      if (Array.isArray(data) && data.length > 0) setMarkets(data);
+    }).catch(() => { /* backend offline — static data remains */ });
+  }, []);
 
   const portfolioValue = useMemo(
     () => myPositions.reduce((sum, p) => sum + p.value, 0) + cashBalance,

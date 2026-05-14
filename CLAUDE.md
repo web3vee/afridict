@@ -233,4 +233,44 @@ AfriDict is a full-stack decentralized prediction market platform for African us
 
 ---
 
+---
+
+## Backend API Endpoints
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/api/markets` | Public | List markets (`?status=active&limit=200`) |
+| GET | `/api/markets/:id` | Public | Single market by numeric id |
+| POST | `/api/markets` | User | Submit market for review (status: pending) |
+| GET | `/api/markets/pending` | Admin | List pending markets |
+| PATCH | `/api/markets/:id/approve` | Admin | Approve pending market |
+| PATCH | `/api/markets/:id/reject` | Admin | Reject pending market |
+| PATCH | `/api/markets/:id/resolve` | Admin | Resolve market, pay out winners |
+| POST | `/api/bets` | User | Place a bet (deducts balance, updates pool) |
+| GET | `/api/bets/my` | User | User's bet history |
+| GET | `/api/bets/market/:marketId` | Public | All bets for a market |
+| GET | `/api/auth/me` | User | Get current user (incl. balance.usdt) |
+| POST | `/api/payments/flutterwave/initiate` | User+KYC | Start Flutterwave payment |
+| POST | `/api/payments/flutterwave/verify` | Public | Verify Flutterwave payment |
+| POST | `/api/payments/cngn/initiate` | User | Start cNGN mint |
+| POST | `/api/payments/withdraw` | User+KYC | Request withdrawal |
+
+## Backend Models
+
+- `models/Market.js` — fields: `id`, `title`, `category`, `yesOdds`, `noOdds`, `pool`, `yesPool`, `noPool`, `status`, `outcome`, `region`, `endTime`, `featured`, `views`, `creator`, `resolvedBy`, `resolvedAt`
+- `models/Bet.js` — fields: `user`, `market`, `marketId`, `marketTitle`, `side`, `amount`, `odds`, `potentialWin`, `status`, `settledAt`
+- `models/User.js` — fields: `firebaseUid`, `email`, `username`, `walletAddress`, `country`, `currency`, `kyc`, `balance.usdt`, `totalBets`, `totalWinnings`, `role`, `referralCode`
+
+## Seeding
+
+Run once after MongoDB is set up:
+```
+cd backend && npm run seed
+```
+
+## AppContext API integration
+
+- Markets: fetched from `GET /api/markets?limit=200` on mount; falls back to staticData if backend is offline
+- Balance: fetched from `GET /api/auth/me` on Firebase login; falls back to localStorage if backend is offline
+
 *Update this file whenever a new page, component, hook, or major feature is added.*

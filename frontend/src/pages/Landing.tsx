@@ -125,14 +125,13 @@ export default function Landing({
     if (categoryFilter) {
       base = markets.filter(m => m.category === categoryFilter);
     } else if (activeCategory === 'Trending') {
-      base = [...markets].sort((a, b) => (b.pool ?? 0) - (a.pool ?? 0)).slice(0, 10);
+      base = [...markets].sort((a, b) => (b.pool ?? 0) - (a.pool ?? 0));
     } else if (activeCategory === 'Breaking') {
       base = [...markets]
         .filter(m => (m.yesOdds ?? 2) > 2.3 || (m.noOdds ?? 2) > 2.3)
-        .sort((a, b) => Math.max(b.yesOdds ?? 2, b.noOdds ?? 2) - Math.max(a.yesOdds ?? 2, a.noOdds ?? 2))
-        .slice(0, 10);
+        .sort((a, b) => Math.max(b.yesOdds ?? 2, b.noOdds ?? 2) - Math.max(a.yesOdds ?? 2, a.noOdds ?? 2));
     } else if (activeCategory === 'New') {
-      base = [...markets].sort((a, b) => (b.id ?? 0) - (a.id ?? 0)).slice(0, 10);
+      base = [...markets].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
     } else {
       base = markets.filter(m => m.category === activeCategory);
     }

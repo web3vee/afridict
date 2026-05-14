@@ -9,6 +9,7 @@ const authRoutes = require("./routes/auth");
 const marketRoutes = require("./routes/markets");
 const userRoutes = require('./routes/auth');
 const paymentRoutes = require("./routes/payments");
+const betRoutes = require("./routes/bets");
 const { initBlockchainListener } = require("./services/blockchain");
 
 const app = express();
@@ -37,6 +38,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/markets", marketRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/bets", betRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -66,14 +68,18 @@ io.on("connection", (socket) => {
   });
 });
 
-// === TEMPORARY FIX: Skip MongoDB ===
-console.log("⚠️ MongoDB skipped - betting + blockchain still fully functional!");
-
-initBlockchainListener(io).catch(console.error);
-
-// Start server
+// Connect MongoDB then start server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`✅ AfriDict Backend running on http://localhost:${PORT}`);
-  console.log("Ready for frontend to connect!");
-});
+mongoose
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/afridict")
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    initBlockchainListener(io).catch(console.error);
+    server.listen(PORT, () => {
+      console.log(`✅ AfriDict Backend running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed:", err.message);
+    process.exit(1);
+  });
