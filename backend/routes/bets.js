@@ -1,27 +1,37 @@
 const express = require("express");
 const router  = express.Router();
+const { body, param, query, validationResult } = require("express-validator");
 const Bet     = require("../models/Bet");
 const Market  = require("../models/Market");
 const User    = require("../models/User");
 const { protect } = require("../middleware/auth");
 
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  next();
+};
+
 /**
  * POST /api/bets
  * Place a bet on a market. Deducts balance, creates bet record, updates market pools.
  */
-router.post("/", protect, async (req, res) => {
+router.post(
+  "/",
+  protect,
+  [
+    body("marketId").isNumeric().withMessage("marketId must be a number"),
+    body("side").isIn(["yes", "no"]).withMessage("side must be yes or no"),
+    body("amount")
+      .isFloat({ min: 0.5, max: 50000 })
+      .withMessage("Amount must be between $0.50 and $50,000"),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { marketId, side, amount } = req.body;
-
-    if (!marketId || !side || !amount) {
-      return res.status(400).json({ error: "marketId, side, and amount are required" });
-    }
-    if (!["yes", "no"].includes(side)) {
-      return res.status(400).json({ error: "side must be yes or no" });
-    }
-    if (amount < 0.5) {
-      return res.status(400).json({ error: "Minimum bet is $0.50" });
-    }
 
     const user = await User.findById(req.user._id);
     if (user.balance.usdt < amount) {

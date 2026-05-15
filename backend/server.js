@@ -3,6 +3,8 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/auth");
@@ -15,23 +17,57 @@ const { initBlockchainListener } = require("./services/blockchain");
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io for real-time updates
-const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"],
-  },
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || "http://localhost:3000";
+
+const corsOptions = {
+  origin: ALLOWED_ORIGIN,
+  methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+// Rate limiters
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
 });
 
-// Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000" }));
-app.use(express.json());
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts, please try again later." },
+});
+
+// Socket.io for real-time updates
+const io = new Server(server, {
+  cors: { origin: ALLOWED_ORIGIN, methods: ["GET", "POST"] },
+});
+
+// Security headers
+app.use(helmet());
+
+// CORS — must be before routes
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // Make io accessible to routes
 app.set("io", io);
 
 // Webhook routes need raw body — mount BEFORE express.json()
 app.use("/api/webhooks", paymentRoutes);
+
+// Body parsing for all other routes
+app.use(express.json({ limit: "50kb" }));
+
+// Apply rate limits
+app.use("/api/auth", strictLimiter);
+app.use("/api/payments", strictLimiter);
+app.use("/api/", generalLimiter);
 
 // Routes
 app.use("/api/auth", authRoutes);

@@ -1,9 +1,18 @@
 const express = require("express");
 const router  = express.Router();
+const { body, query: qv, validationResult } = require("express-validator");
 const Market  = require("../models/Market");
 const Bet     = require("../models/Bet");
 const User    = require("../models/User");
 const { protect, requireAdmin } = require("../middleware/auth");
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  next();
+};
+
+const VALID_CATEGORIES = ["Politics", "Sports", "Crypto", "Economy", "Entertainment", "Technology", "Science", "Other"];
 
 // GET /api/markets — list markets with optional filters
 router.get("/", async (req, res) => {
@@ -51,12 +60,20 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/markets — user submits a new market for review
-router.post("/", protect, async (req, res) => {
+router.post(
+  "/",
+  protect,
+  [
+    body("title").trim().notEmpty().withMessage("title is required").isLength({ max: 200 }).withMessage("title max 200 chars"),
+    body("category").isIn(VALID_CATEGORIES).withMessage("Invalid category"),
+    body("yesOdds").optional().isFloat({ min: 1.01, max: 100 }).withMessage("yesOdds must be 1.01–100"),
+    body("noOdds").optional().isFloat({ min: 1.01, max: 100 }).withMessage("noOdds must be 1.01–100"),
+    body("imageUrl").optional({ nullable: true }).isURL().withMessage("imageUrl must be a valid URL"),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { title, category, yesOdds, noOdds, endTime, region, imageUrl, tags } = req.body;
-    if (!title || !category) {
-      return res.status(400).json({ error: "title and category are required" });
-    }
 
     // Auto-increment id
     const last = await Market.findOne().sort({ id: -1 }).select("id");

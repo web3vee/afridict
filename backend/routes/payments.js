@@ -2,7 +2,14 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 const crypto = require("crypto");
+const { body, validationResult } = require("express-validator");
 const { protect, requireKYC } = require("../middleware/auth");
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  next();
+};
 
 // ── API KEYS ─────────────────────────────────────────────────────────
 // Flutterwave: dashboard.flutterwave.com → Settings → API Keys
@@ -26,13 +33,17 @@ const NGN_RATE = 1600;
  * Initiates a fiat deposit via Flutterwave
  * Currencies: NGN, KES, ZAR, GHS
  */
-router.post("/flutterwave/initiate", protect, async (req, res) => {
+router.post(
+  "/flutterwave/initiate",
+  protect,
+  [
+    body("amount").isFloat({ min: 100, max: 10000000 }).withMessage("Minimum deposit is 100"),
+    body("currency").isIn(["NGN", "KES", "ZAR", "GHS"]).withMessage("Unsupported currency"),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { amount, currency } = req.body;
-    if (!amount || amount < 100) return res.status(400).json({ error: "Minimum deposit is 100" });
-    if (!["NGN", "KES", "ZAR", "GHS"].includes(currency)) {
-      return res.status(400).json({ error: "Unsupported currency" });
-    }
 
     const txRef = `AFRIPRED-${req.user._id}-${Date.now()}`;
 
@@ -119,10 +130,16 @@ router.post("/flutterwave/verify", async (req, res) => {
  * POST /api/payments/paystack/initiate
  * Initiates a fiat deposit via Paystack (NGN primary)
  */
-router.post("/paystack/initiate", protect, async (req, res) => {
+router.post(
+  "/paystack/initiate",
+  protect,
+  [
+    body("amount").isInt({ min: 10000, max: 1000000000 }).withMessage("Minimum ₦100 (10000 kobo)"),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { amount } = req.body; // amount in kobo (NGN)
-    if (!amount || amount < 10000) return res.status(400).json({ error: "Minimum ₦100 (10000 kobo)" });
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
@@ -193,11 +210,19 @@ router.post("/paystack/verify", async (req, res) => {
  * POST /api/payments/withdraw
  * Request a USDT withdrawal to wallet
  */
-router.post("/withdraw", protect, requireKYC, async (req, res) => {
+router.post(
+  "/withdraw",
+  protect,
+  requireKYC,
+  [
+    body("amount").isFloat({ min: 1, max: 100000 }).withMessage("Amount must be between $1 and $100,000"),
+    body("walletAddress").trim().notEmpty().withMessage("Wallet address required")
+      .matches(/^0x[a-fA-F0-9]{40}$/).withMessage("Invalid Ethereum wallet address"),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { amount, walletAddress } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    if (!walletAddress) return res.status(400).json({ error: "Wallet address required" });
     if (req.user.balance.usdt < amount) return res.status(400).json({ error: "Insufficient balance" });
 
     // In production: trigger blockchain transfer via relayer
@@ -220,11 +245,17 @@ router.post("/withdraw", protect, requireKYC, async (req, res) => {
  * User sends NGN from their bank; receives cNGN (1:1 Naira stablecoin)
  * which we convert to USDT for the prediction balance
  */
-router.post("/cngn/initiate", protect, async (req, res) => {
+router.post(
+  "/cngn/initiate",
+  protect,
+  [
+    body("amount").isFloat({ min: 1000, max: 10000000 }).withMessage("Minimum ₦1,000 for cNGN deposits"),
+    body("bvn").isLength({ min: 11, max: 11 }).isNumeric().withMessage("Valid 11-digit BVN required"),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { amount, bvn } = req.body;
-    if (!amount || amount < 1000) return res.status(400).json({ error: "Minimum ₦1,000 for cNGN deposits" });
-    if (!bvn || bvn.length !== 11) return res.status(400).json({ error: "Valid 11-digit BVN required" });
 
     const txRef = `AFRIDICT-CNGN-${req.user._id}-${Date.now()}`;
 
