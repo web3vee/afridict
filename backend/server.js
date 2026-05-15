@@ -106,8 +106,17 @@ io.on("connection", (socket) => {
 
 // Connect MongoDB then start server
 const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/afridict";
+
+mongoose.connection.on("disconnected", () => console.warn("⚠️  MongoDB disconnected"));
+mongoose.connection.on("reconnected",  () => console.log("✅ MongoDB reconnected"));
+
 mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/afridict")
+  .connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    maxPoolSize: 10,
+  })
   .then(() => {
     console.log("✅ MongoDB connected");
     initBlockchainListener(io).catch(console.error);
@@ -119,3 +128,13 @@ mongoose
     console.error("❌ MongoDB connection failed:", err.message);
     process.exit(1);
   });
+
+// Graceful shutdown
+const shutdown = async (signal) => {
+  console.log(`\n${signal} received — shutting down gracefully`);
+  await mongoose.connection.close();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10000);
+};
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
